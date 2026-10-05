@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f4f7f3">
+  <title>Singapore Air Quality | PSI & Pollutants</title>
+  <style>
+    :root { color-scheme: light; --ink:#17302c; --muted:#687c76; --line:#e2eae5; --green:#18765a; --mint:#e7f3eb; --paper:#fff; }
+    * { box-sizing:border-box }
+    body { margin:0; background:#f4f7f3; color:var(--ink); font:15px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif }
+    main { max-width:1120px; margin:auto; padding:46px 24px 64px }
+    .topline { display:flex; justify-content:space-between; align-items:center; gap:18px; margin-bottom:30px }
+    .brand { display:flex; align-items:center; gap:11px; font-weight:700; letter-spacing:.01em }
+    .mark { width:38px;height:38px;border-radius:13px;background:var(--green);display:grid;place-items:center;color:white;font-size:20px }
+    .live { color:#24714f;background:#e6f3e8;border-radius:99px;padding:7px 12px;font-size:12px;font-weight:700;display:flex;align-items:center;gap:7px }
+    .live:before { content:"";width:7px;height:7px;border-radius:50%;background:#35a66b }
+    .hero { margin-bottom:28px }
+    .eyebrow { color:var(--green);font-size:12px;text-transform:uppercase;letter-spacing:.13em;font-weight:800 }
+    h1 { font-size:clamp(30px,5vw,46px);line-height:1.08;letter-spacing:-.045em;margin:9px 0 10px }
+    .sub { color:var(--muted);margin:0 }
+    .info { margin-top:22px;display:flex;flex-wrap:wrap;gap:10px 24px;color:var(--muted);font-size:13px }
+    .info strong { color:var(--ink);font-weight:650 }
+    .panel { background:var(--paper);border:1px solid var(--line);border-radius:18px;box-shadow:0 8px 30px #17302c08 }
+    .chart-panel { padding:22px 24px 18px;margin-bottom:20px }
+    .panel-head { display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:12px }
+    h2 {font-size:17px;margin:0;letter-spacing:-.02em}
+    .hint {font-size:12px;color:var(--muted);margin:4px 0 0}
+    select {border:1px solid var(--line);border-radius:10px;background:white;color:var(--ink);font:inherit;padding:9px 34px 9px 12px;max-width:55%;cursor:pointer}
+    .chart-wrap { height:275px;position:relative }
+    canvas {width:100%;height:100%;display:block}
+    .table-panel {overflow:hidden}
+    .table-head {padding:20px 24px 14px;display:flex;justify-content:space-between;align-items:end;gap:12px}
+    .scroll {overflow-x:auto }
+    table {border-collapse:collapse;width:100%;min-width:700px;text-align:left;font-variant-numeric:tabular-nums}
+    th,td {padding:13px 20px;border-top:1px solid var(--line);white-space:nowrap}
+    th {background:#f8faf8;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.08em;font-weight:750}
+    th:first-child,td:first-child {padding-left:24px}
+    td:first-child {font-weight:650;color:#304943}
+    tbody tr:hover {background:#f7faf7}
+    .value {display:inline-block;min-width:28px}
+    .foot {display:flex;justify-content:space-between;gap:12px;padding:13px 24px;color:var(--muted);font-size:12px}
+    .status {padding:15px 20px;color:var(--muted);font-size:14px}
+    .error {color:#a23e36;background:#fff4f1;border:1px solid #f2d8d2;border-radius:12px;padding:14px 16px;margin:18px 0}
+    .source {margin:18px 2px;color:var(--muted);font-size:12px}
+    a {color:var(--green)}
+    @media(max-width:600px) {main{padding:25px 15px 42px}.topline{margin-bottom:24px}.chart-panel{padding:18px 15px}.table-head{padding:18px 16px 12px}.foot{padding:12px 16px}.panel-head{align-items:flex-start;flex-direction:column}select{max-width:100%;width:100%}.chart-wrap{height:235px}}
+  </style>
+</head>
+<body>
+  <main>
+    <header class="topline"><div class="brand"><span class="mark" aria-hidden="true">◉</span><span>Singapore Air Quality</span></div><span class="live">LIVE DATA</span></header>
+    <section class="hero" aria-labelledby="title">
+      <div class="eyebrow">Environment · Singapore</div>
+      <h1 id="title">Air quality, at a glance.</h1>
+      <p class="sub">Current PSI and pollutant readings across Singapore’s five regions.</p>
+      <div class="info"><span>Reading time: <strong id="reading-time">Loading…</strong></span><span>Data updated: <strong id="updated-time">—</strong></span><span>Last checked: <strong id="checked-time">—</strong></span><span>Auto-refreshes every 60 seconds</span></div>
+    </section>
+    <div id="notice" aria-live="polite"></div>
+    <section class="panel chart-panel" aria-labelledby="chart-title">
+      <div class="panel-head"><div><h2 id="chart-title">Pollutant levels by region</h2><p class="hint" id="chart-hint">Choose a measurement to compare regions.</p></div><label for="metric-select" class="sr-only" style="position:absolute;left:-10000px">Choose pollutant</label><select id="metric-select" disabled><option>Loading readings…</option></select></div>
+      <div class="chart-wrap"><canvas id="chart" role="img" aria-label="Pollutant readings by region"></canvas></div>
+    </section>
+    <section class="panel table-panel" aria-labelledby="table-title">
+      <div class="table-head"><div><h2 id="table-title">All measurements</h2><p class="hint">Latest available reading for each region.</p></div></div>
+      <div class="scroll"><table><thead id="table-head"></thead><tbody id="table-body"><tr><td colspan="6" class="status">Fetching readings from data.gov.sg…</td></tr></tbody></table></div>
+      <div class="foot"><span>Values are reported by the Singapore government.</span><span id="measurement-count"></span></div>
+    </section>
+    <p class="source">Source: <a href="https://api-open.data.gov.sg/v2/real-time/api/psi" target="_blank" rel="noreferrer">data.gov.sg · PSI API</a></p>
+  </main>
+  <script>
+    const API = 'https://api-open.data.gov.sg/v2/real-time/api/psi';
+    const regions = ['north', 'south', 'east', 'west', 'central'];
+    const labels = {
+      psi_twenty_four_hourly: '24-hour PSI', no2_one_hour_max: '1-hour max NO₂',
+      pm10_twenty_four_hourly: '24-hour PM₁₀', pm25_twenty_four_hourly: '24-hour PM₂.₅',
+      so2_twenty_four_hourly: '24-hour SO₂', co_eight_hour_max: '8-hour max CO',
+      o3_eight_hour_max: '8-hour max O₃', co_sub_index: 'CO sub-index',
+      o3_sub_index: 'O₃ sub-index', pm10_sub_index: 'PM₁₀ sub-index',
+      pm25_sub_index: 'PM₂.₅ sub-index', so2_sub_index: 'SO₂ sub-index'
+    };
+    const colors = ['#69a88a', '#d29b54', '#5996bd', '#8f7bb9', '#dd7865'];
+    let readings = null;
+    let loading = false;
+
+    function prettyDate(value) {
+      if (!value) return '—';
+      const date = new Date(value);
+      return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat('en-SG', {dateStyle:'medium',timeStyle:'short',timeZone:'Asia/Singapore'}).format(date) + ' SGT';
+    }
+    function drawChart(key) {
+      if (!readings) return;
+      const canvas = document.getElementById('chart');
+      const box = canvas.getBoundingClientRect();
+      const scale = window.devicePixelRatio || 1;
+      canvas.width = Math.max(1, Math.floor(box.width * scale));
+      canvas.height = Math.max(1, Math.floor(box.height * scale));
+      const ctx = canvas.getContext('2d');
+      ctx.scale(scale, scale);
+      const w = box.width, h = box.height;
+      const pad = {top:16,right:12,bottom:36,left:40};
+      const chartW = w - pad.left - pad.right, chartH = h - pad.top - pad.bottom;
+      const values = regions.map(region => readings[key][region]);
+      const max = Math.max(...values.filter(Number.isFinite), 1);
+      const step = max <= 10 ? 2 : Math.ceil(max / 4 / 10) * 10;
+      const top = Math.max(step, Math.ceil(max / step) * step);
+      ctx.font = '11px system-ui, sans-serif';
+      ctx.textBaseline = 'middle';
+      for (let i=0;i<=4;i++) {
+        const value = top * i / 4, y = pad.top + chartH - chartH * i / 4;
+        ctx.strokeStyle = '#e8eeea'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(pad.left,y); ctx.lineTo(w-pad.right,y); ctx.stroke();
+        ctx.fillStyle='#82918b'; ctx.textAlign='right'; ctx.fillText(Number.isInteger(value) ? value : value.toFixed(1),pad.left-8,y);
+      }
+      const slot = chartW / regions.length, barW = Math.min(52, slot * .48);
+      regions.forEach((region,i) => {
+        const value = values[i], x = pad.left + slot*i + (slot-barW)/2;
+        const barH = Number.isFinite(value) ? value/top*chartH : 0;
+        ctx.fillStyle=colors[i]; ctx.beginPath();
+        if (ctx.roundRect) ctx.roundRect(x,pad.top+chartH-barH,barW,barH,[6,6,0,0]); else ctx.rect(x,pad.top+chartH-barH,barW,barH);
+        ctx.fill();
+        ctx.fillStyle='#50665f';ctx.textAlign='center';ctx.fillText(region[0].toUpperCase()+region.slice(1),pad.left+slot*i+slot/2,h-15);
+        ctx.fillStyle='#17302c';ctx.font='600 11px system-ui, sans-serif';ctx.fillText(Number.isFinite(value)?value:'—',x+barW/2,Math.max(9,pad.top+chartH-barH-11));ctx.font='11px system-ui, sans-serif';
+      });
+      canvas.setAttribute('aria-label', `${labels[key]} by region: ${regions.map((region,i)=>`${region} ${values[i] ?? 'unavailable'}`).join(', ')}`);
+    }
+    function render(data) {
+      const item = data.items?.[0];
+      if (!item?.readings) throw new Error('The API returned no current readings.');
+      const previousMetric = document.getElementById('metric-select').value;
+      readings = item.readings;
+      const keys = Object.keys(readings);
+      document.getElementById('reading-time').textContent = prettyDate(item.timestamp);
+      document.getElementById('updated-time').textContent = prettyDate(item.updatedTimestamp);
+      document.getElementById('measurement-count').textContent = `${keys.length} measurements`;
+      document.getElementById('table-head').innerHTML = `<tr><th scope="col">Measurement</th>${regions.map(r=>`<th scope="col">${r}</th>`).join('')}</tr>`;
+      document.getElementById('table-body').innerHTML = keys.map(key => `<tr><td>${labels[key] || key.replaceAll('_',' ')}</td>${regions.map(region=>`<td>${readings[key][region] ?? '—'}</td>`).join('')}</tr>`).join('');
+      const select = document.getElementById('metric-select');
+      select.innerHTML = keys.map(key=>`<option value="${key}">${labels[key] || key}</option>`).join('');
+      select.value = keys.includes(previousMetric) ? previousMetric : keys.includes('psi_twenty_four_hourly') ? 'psi_twenty_four_hourly' : keys[0];
+      select.disabled = false;
+      select.onchange = () => { document.getElementById('chart-hint').textContent = `${labels[select.value] || select.value} · values by region`; drawChart(select.value); };
+      select.dispatchEvent(new Event('change'));
+    }
+    async function load() {
+      if (loading) return;
+      loading = true;
+      try {
+        const response = await fetch(API, {headers:{accept:'application/json'}});
+        if (!response.ok) throw new Error(`Request failed (${response.status}).`);
+        const payload = await response.json();
+        if (payload.code !== 0) throw new Error(payload.errorMsg || 'The data service returned an error.');
+        render(payload.data);
+        document.getElementById('checked-time').textContent = prettyDate(new Date().toISOString());
+        document.getElementById('notice').textContent = '';
+      } catch (error) {
+        document.getElementById('notice').innerHTML = `<div class="error">Refresh failed: ${error.message} ${readings ? 'Showing the last successful readings; another check will happen automatically.' : 'The page will retry automatically.'}</div>`;
+      } finally {
+        loading = false;
+      }
+    }
+    document.getElementById('metric-select').addEventListener('change',event=>drawChart(event.target.value));
+    window.addEventListener('resize',()=>drawChart(document.getElementById('metric-select').value));
+    load();
+    window.setInterval(load, 60_000);
+  </script>
+</body>
+</html>
